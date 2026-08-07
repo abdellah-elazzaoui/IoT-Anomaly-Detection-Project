@@ -1,1 +1,12 @@
+# Environment variables
 .env
+
+# Directory ignoring (for tinyllama)
+tinyllama/
+/tinyllama/
+tinyllama/*
+
+# Jupyter notebook files
+*.ipynb
+test.ipynb
+.test.ipynb
