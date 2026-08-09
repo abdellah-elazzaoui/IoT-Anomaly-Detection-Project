@@ -6,6 +6,10 @@ tinyllama/
 /tinyllama/
 tinyllama/*
 
+data/
+/data/
+data/*
+
 # Jupyter notebook files
 *.ipynb
 test.ipynb
