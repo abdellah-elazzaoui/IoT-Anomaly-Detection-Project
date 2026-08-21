@@ -125,6 +125,7 @@ services:
       - ./airflow:/home/jovyan/airflow
       - ./data:/home/jovyan/data
       - ./notebooks:/home/jovyan/notebooks
+      - ./models:/home/jovyan/models
     ports: ["8888:8888"]
     environment:
       - SPARK_MASTER=spark://spark-master:7077

@@ -32,21 +32,16 @@ class SensorProducer:
         self.count = 0 
 
     def create_message(self):
-        # Normal ranges
-        temperature = round(random.uniform(20, 35), 2)  # 20-35°C
-        humidity = round(random.uniform(30, 70), 1)     # 30-70%
-        pressure = round(random.uniform(980, 1020), 1)  # 980-1020 hPa
-        vibration = round(random.uniform(0.1, 1.5), 2)  # 0.1-1.5 m/s²
+        devices = ["DHT11_A", "DHT11_B", "DHT11_C", "DHT11_D"]
+        device_id = random.choice(devices)
         
         return {
+            "Device_ID": device_id,
             "timestamp": datetime.now().isoformat(),
-            "device_id": f"DEV-{random.randint(1, 10):03d}",
-            "temperature": temperature,
-            "humidity": humidity,
-            "pressure": pressure,
-            "vibration": vibration,
-            "status": "normal"
-        }                    
+            "Temperature": round(random.uniform(-1.5, 1.5), 6),
+            "Humidity": round(random.uniform(-1.5, 1.5), 6),
+            "Battery_Level": round(random.uniform(-1.5, 1.5), 6)   
+        }
 
     def send_message(self):
         try:
