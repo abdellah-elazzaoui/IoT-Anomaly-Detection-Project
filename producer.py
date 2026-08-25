@@ -36,11 +36,11 @@ class SensorProducer:
         device_id = random.choice(devices)
         
         return {
-            "Device_ID": device_id,
+            "device_id": device_id,
             "timestamp": datetime.now().isoformat(),
-            "Temperature": round(random.uniform(-1.5, 1.5), 6),
-            "Humidity": round(random.uniform(-1.5, 1.5), 6),
-            "Battery_Level": round(random.uniform(-1.5, 1.5), 6)   
+            "temperature": round(random.uniform(-1.5, 1.5), 6),
+            "humidity": round(random.uniform(-1.5, 1.5), 6),
+            "battery_level": round(random.uniform(-1.5, 1.5), 6)   
         }
 
     def send_message(self):
