@@ -3,6 +3,8 @@ services:
   cassandra_iot1:
     image: cassandra:latest
     container_name: cassandra_iot1
+    ports:
+      - "9042:9042"
     environment:
       - CASSANDRA_CLUSTER_NAME=DataPlatform
       - MAX_HEAP_SIZE=384M
@@ -17,10 +19,14 @@ services:
       retries: 15
       start_period: 120s
     networks: [data-platform]
+    volumes:
+      - cassandra_data1:/var/lib/cassandra
 
   cassandra_iot2:
     image: cassandra:latest
     container_name: cassandra_iot2
+    ports:
+      - "9043:9042"
     depends_on:
       cassandra_iot1:
         condition: service_healthy
@@ -33,10 +39,14 @@ services:
       - JVM_OPTS=-XX:+UseG1GC -XX:MaxGCPauseMillis=20
     mem_limit: 768m
     networks: [data-platform]
+    volumes:
+      - cassandra_data2:/var/lib/cassandra
 
   cassandra_iot3:
     image: cassandra:latest
     container_name: cassandra_iot3
+    ports:
+      - "9044:9042"
     depends_on:
       cassandra_iot1:
         condition: service_healthy
@@ -49,11 +59,15 @@ services:
       - JVM_OPTS=-XX:+UseG1GC -XX:MaxGCPauseMillis=20
     mem_limit: 768m
     networks: [data-platform]
+    volumes:
+      - cassandra_data3:/var/lib/cassandra
 
   # --- KAFKA & ZOOKEEPER ---
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.3
     container_name: iot-zookeeper
+    ports:
+      - "2181:2181"
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       KAFKA_HEAP_OPTS: "-Xms64M -Xmx128M"
@@ -108,7 +122,7 @@ services:
   iot-kafka-ui:
     image: provectuslabs/kafka-ui:latest
     container_name: iot-kafka-ui
-    depends_on: [iot-kafka-1]
+    depends_on: [iot-kafka-1, iot-kafka-2, iot-kafka-3]
     ports: ["8080:8080"]
     environment:
       KAFKA_CLUSTERS_0_NAME: local
@@ -117,7 +131,7 @@ services:
     mem_limit: 220mb
     networks: [data-platform]
 
-
+  # --- JUPYTER WITH SPARK ---
   iot_jupyter:
     image: jupyter/pyspark-notebook:latest
     container_name: iot_jupyter
@@ -138,7 +152,6 @@ networks:
     driver: bridge
 
 volumes:
-  postgres_data:
-  superset-db-data:
-  superset-redis-data:
-  superset-packages:
+  cassandra_data1:
+  cassandra_data2:
+  cassandra_data3:
