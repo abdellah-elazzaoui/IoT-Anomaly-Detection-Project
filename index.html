@@ -46,7 +46,7 @@
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
                 <h3>Total Readings</h3>
-                <div class="value" id="totalReadings">-</div>
+                <div class="value" id="totalReadings">0</div>
                 <div class="label">Last 24 hours</div>
             </div>
             <div class="stat-card anomaly">
@@ -110,22 +110,25 @@
         const API_URL = 'http://localhost:8000/api';
         let sensorChart = null;
         let currentSensor = '';
+        let total_readings = 0;
 
         // Load sensors
         async function loadSensors() {
             try {
                 const response = await fetch(`${API_URL}/sensors`);
                 const data = await response.json();
+                total_readings = data.length; 
+                document.getElementById('totalReadings').textContent = total_readings;
                 const select = document.getElementById('sensorSelect');
                 select.innerHTML = '';
-                data.sensors.forEach(sensor => {
+                data.forEach(sensor => {
                     const option = document.createElement('option');
                     option.value = sensor;
                     option.textContent = sensor;
                     select.appendChild(option);
                 });
-                if (data.sensors.length > 0) {
-                    currentSensor = data.sensors[0];
+                if (data.length > 0) {
+                    currentSensor = data[0];
                     select.value = currentSensor;
                     loadSensorData();
                 }
