@@ -108,58 +108,80 @@ async def get_sensor_data(device_id:str , hour:int=24):
 
 
 @app.get("/api/anomalies")
-async def get_anomalies(hours:int = 24):
+async def get_anomalies(hours: int = 48):
     """Get all anomalies in last N hours"""
     session = get_cassandra_session()
-    end_time = datetime.now()
-    start_time = end_time - timedelta(hours=hours)
-    query = """
-        SELECT device_id, timestamp, temperature, humidity, battery_level
-        FROM sensor_data
-        WHERE anomaly = 1 AND timestamp >= %s
-        ORDER BY timestamp DESC
-    """
-    rows = session.execute(query, [start_time])
-    anomalies = []
-    for row in rows:
-        anomalies.append({
-            "device_id": row['device_id'],
-            "timestamp": row['timestamp'].isoformat(),
-            "temperature": row['temperature'],
-            "humidity": row['humidity'],
-            "battery_level": row['battery_level']
-        })
-    
-    return {"anomalies": anomalies}
+    try:
+        end_time = datetime.now()
+        start_time = end_time - timedelta(hours=hours)
+        query = """
+            SELECT device_id, timestamp, temperature, humidity, battery_level
+            FROM sensor_data
+            WHERE anomaly = 1 AND timestamp >= %s
+            LIMIT 5
+            ALLOW FILTERING
+        """
+        rows = session.execute(query, [start_time])
+        
+        anomalies = []
+        for row in rows:
+            anomalies.append({
+                "device_id": row['device_id'],
+                "timestamp": row['timestamp'].isoformat(),
+                "temperature": row['temperature'],
+                "humidity": row['humidity'],
+                "battery_level": row['battery_level']
+            })
+        
+        return {"anomalies": anomalies}
+        
+    except Exception as e:
+        print(f"❌ Anomalies error: {e}")
+        return {"anomalies": []}
 
 @app.get("/api/stats")
 async def get_stats():
     """Get statistics dashboard"""
     session = get_cassandra_session()
-
-    # Total readings
-    total_query = "SELECT COUNT(*) as count FROM sensor_data"
-    total = session.execute(total_query).one()
-
-    #Anomaly Count
-    anomaly_query =  "SELECT COUNT(*) AS count FROM sensor_data WHERE anomaly=1"
-    anomaly_count =  session.execute(anomaly_query).one()
-
-    # Last reading
-    last_query = "SELECT * FROM sensor_data LIMIT 1"
-    last =  session.execute(last_query).one()
-    return {
-        "total_readings": total['count'],
-        "anomaly_count": anomaly_count['count'],
-        "anomaly_percentage": (anomaly_count['count'] / total['count']) * 100 if total['count'] > 0 else 0,
-        "last_reading": {
-            "device_id": last['device_id'],
-            "timestamp": last['timestamp'].isoformat(),
-            "temperature": last['temperature'],
-            "humidity":last["humidity"],
-            "battery_level":last["battery_level"]
+    
+    try:
+        # Total readings
+        total_query = "SELECT COUNT(*) as count FROM sensor_data"
+        total = session.execute(total_query).one()
+        total_count = total['count'] if total else 0
+        
+        # Anomaly Count (using ALLOW FILTERING since anomaly is not a partition key)
+        anomaly_query = "SELECT COUNT(*) as count FROM sensor_data WHERE anomaly = 1 ALLOW FILTERING"
+        anomaly_count = session.execute(anomaly_query).one()
+        anomaly_count_val = anomaly_count['count'] if anomaly_count else 0
+        
+        # Last reading (get the most recent)
+        last_query = "SELECT * FROM sensor_data LIMIT 1"
+        last = session.execute(last_query).one()
+        
+        # Calculate anomaly percentage
+        anomaly_percentage = (anomaly_count_val / total_count) * 100 if total_count > 0 else 0
+        
+        return {
+            "total_readings": total_count,
+            "anomaly_count": anomaly_count_val,
+            "anomaly_percentage": round(anomaly_percentage, 2),
+            "last_reading": {
+                "device_id": last['device_id'] if last else "N/A",
+                "timestamp": last['timestamp'].isoformat() if last else datetime.now().isoformat(),
+                "temperature": last['temperature'] if last else 0.0,
+                "humidity": last['humidity'] if last else 0.0,
+                "battery_level": last['battery_level'] if last else 0.0
+            } if last else {}
         }
-    }
+    except Exception as e:
+        print(f"❌ Stats error: {e}")
+        return {
+            "total_readings": 0,
+            "anomaly_count": 0,
+            "anomaly_percentage": 0,
+            "last_reading": {}
+        }
 
 
 if __name__ == "__main__":

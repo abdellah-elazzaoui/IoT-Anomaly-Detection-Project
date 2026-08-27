@@ -45,7 +45,7 @@
 
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
-                <h3>Total Sensors</h3>
+                <h3>Total Readings</h3>
                 <div class="value" id="totalReadings">0</div>
                 <div class="label">Last 24 hours</div>
             </div>
@@ -61,7 +61,7 @@
             </div>
             <div class="stat-card normal">
                 <h3>Active Sensors</h3>
-                <div class="value" id="activeSensors">-</div>
+                <div class="value" id="activeSensors">0</div>
                 <div class="label">Currently monitoring</div>
             </div>
         </div>
@@ -99,7 +99,7 @@
         </div>
 
         <div class="card">
-            <h2>⚠️ Recent Anomalies</h2>
+            <h2> Recent Anomalies</h2>
             <div class="anomaly-list" id="anomalyList">
                 <p style="color: #888;">Loading anomalies...</p>
             </div>
@@ -111,6 +111,8 @@
         let sensorChart = null;
         let currentSensor = '';
         let total_readings = 0;
+        let anomaly_count = 0;
+        let anomaly_percentage = 0;
         let active_sensors = 0;
 
         // Load sensors
@@ -119,7 +121,7 @@
                 const response = await fetch(`${API_URL}/sensors`);
                 const data = await response.json();
                 active_sensors = data.length; 
-                //document.getElementById('totalReadings').textContent = total_readings;
+                document.getElementById('activeSensors').textContent = active_sensors;
                 const select = document.getElementById('sensorSelect');
                 select.innerHTML = '';
                 data.forEach(sensor => {
@@ -133,6 +135,39 @@
                     select.value = currentSensor;
                     loadSensorData();
                 }
+
+                // fetch Stats
+                const stats_response = await fetch(`${API_URL}/stats`);
+                const stats_data = await stats_response.json();
+                total_readings = stats_data.total_readings
+                document.getElementById("totalReadings").textContent = total_readings
+                anomaly_count = stats_data.anomaly_count
+                document.getElementById("anomalyCount").textContent = anomaly_count
+                anomaly_percentage = stats_data.anomaly_percentage
+                document.getElementById("anomalyRate").textContent = anomaly_percentage
+                
+                // fetch anomalies
+                const anomalies_response = await fetch(`${API_URL}/anomalies?hours=48`);
+                const anomalies_data = await anomalies_response.json();
+                console.log(anomalies_data)
+
+                const container = document.getElementById('anomalyList');
+                
+                if (anomalies_data.length === 0) {
+                    container.innerHTML = '<p style="color: #2ecc71;">✅ No anomalies detected in the last 24 hours</p>';
+                    
+                }
+                else{
+                    container.innerHTML = anomalies_data.anomalies.map(anomaly => `
+                        <div class="anomaly-item">
+                            <div class="device">${anomaly.device_id}</div>
+                            <div class="time">${new Date(anomaly.timestamp).toLocaleString()}</div>
+                            <div>Temp: ${anomaly.temperature}°C | Humidity: ${anomaly.humidity}% | Battery: ${anomaly.battery_level}%</div>
+                        </div>
+                    `).join('');
+                }
+
+
             } catch (error) {
                 console.error('Error loading sensors:', error);
             }
@@ -259,6 +294,7 @@
             try {
                 const response = await fetch(`${API_URL}/stats`);
                 const data = await response.json();
+                console.log(data)
                 
                 document.getElementById('totalReadings').textContent = data.total_readings || 0;
                 document.getElementById('anomalyCount').textContent = data.anomaly_count || 0;
@@ -276,16 +312,16 @@
         // Load anomalies
         async function loadAnomalies() {
             try {
-                const response = await fetch(`${API_URL}/anomalies?hours=24`);
+                const response = await fetch(`${API_URL}/anomalies?hours=48`);
                 const data = await response.json();
                 const container = document.getElementById('anomalyList');
                 
-                if (data.anomalies.length === 0) {
+                if (data.length === 0) {
                     container.innerHTML = '<p style="color: #2ecc71;">✅ No anomalies detected in the last 24 hours</p>';
                     return;
                 }
                 
-                container.innerHTML = data.anomalies.map(anomaly => `
+                container.innerHTML = data.map(anomaly => `
                     <div class="anomaly-item">
                         <div class="device">${anomaly.device_id}</div>
                         <div class="time">${new Date(anomaly.timestamp).toLocaleString()}</div>

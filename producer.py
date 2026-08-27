@@ -44,19 +44,21 @@ class SensorProducer:
         }
 
     def send_message(self):
-        try:
-            message = json.dumps(self.create_message())
-            if message:
-                self.producer.produce(
-                    topic = self.topic,
-                    value=message,
-                    key = str(self.count),
-                    headers = {"correlation_id":str(uuid4())},
-                    on_delivery = delivery_report
-                )
-                self.commit()
-        except Exception as e:
-            print(f"ERROR : {str(e)}")
+        while True:
+            try:
+                message = json.dumps(self.create_message())
+                if message:
+                    self.producer.produce(
+                        topic = self.topic,
+                        value=message,
+                        key = str(self.count),
+                        headers = {"correlation_id":str(uuid4())},
+                        on_delivery = delivery_report
+                    )
+                    self.commit()
+                time.sleep(30)    
+            except Exception as e:
+                print(f"ERROR : {str(e)}")
 
     def commit(self):
         self.producer.flush()
