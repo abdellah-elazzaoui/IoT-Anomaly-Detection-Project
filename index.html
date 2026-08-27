@@ -45,14 +45,14 @@
 
         <div class="stats-grid" id="statsGrid">
             <div class="stat-card">
-                <h3>Total Readings</h3>
+                <h3>Total Sensors</h3>
                 <div class="value" id="totalReadings">0</div>
                 <div class="label">Last 24 hours</div>
             </div>
             <div class="stat-card anomaly">
                 <h3>Anomalies Detected</h3>
                 <div class="value" id="anomalyCount">-</div>
-                <div class="label">⚠️ Critical events</div>
+                <div class="label"> Critical events</div>
             </div>
             <div class="stat-card">
                 <h3>Anomaly Rate</h3>
@@ -111,14 +111,15 @@
         let sensorChart = null;
         let currentSensor = '';
         let total_readings = 0;
+        let active_sensors = 0;
 
         // Load sensors
         async function loadSensors() {
             try {
                 const response = await fetch(`${API_URL}/sensors`);
                 const data = await response.json();
-                total_readings = data.length; 
-                document.getElementById('totalReadings').textContent = total_readings;
+                active_sensors = data.length; 
+                //document.getElementById('totalReadings').textContent = total_readings;
                 const select = document.getElementById('sensorSelect');
                 select.innerHTML = '';
                 data.forEach(sensor => {
@@ -266,7 +267,7 @@
                 // Get active sensors
                 const sensorsResponse = await fetch(`${API_URL}/sensors`);
                 const sensorsData = await sensorsResponse.json();
-                document.getElementById('activeSensors').textContent = sensorsData.sensors.length;
+                document.getElementById('activeSensors').textContent = active_sensors;
             } catch (error) {
                 console.error('Error updating stats:', error);
             }

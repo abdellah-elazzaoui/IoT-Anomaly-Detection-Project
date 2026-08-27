@@ -107,6 +107,61 @@ async def get_sensor_data(device_id:str , hour:int=24):
     return data
 
 
+@app.get("/api/anomalies")
+async def get_anomalies(hours:int = 24):
+    """Get all anomalies in last N hours"""
+    session = get_cassandra_session()
+    end_time = datetime.now()
+    start_time = end_time - timedelta(hours=hours)
+    query = """
+        SELECT device_id, timestamp, temperature, humidity, battery_level
+        FROM sensor_data
+        WHERE anomaly = 1 AND timestamp >= %s
+        ORDER BY timestamp DESC
+    """
+    rows = session.execute(query, [start_time])
+    anomalies = []
+    for row in rows:
+        anomalies.append({
+            "device_id": row['device_id'],
+            "timestamp": row['timestamp'].isoformat(),
+            "temperature": row['temperature'],
+            "humidity": row['humidity'],
+            "battery_level": row['battery_level']
+        })
+    
+    return {"anomalies": anomalies}
+
+@app.get("/api/stats")
+async def get_stats():
+    """Get statistics dashboard"""
+    session = get_cassandra_session()
+
+    # Total readings
+    total_query = "SELECT COUNT(*) as count FROM sensor_data"
+    total = session.execute(total_query).one()
+
+    #Anomaly Count
+    anomaly_query =  "SELECT COUNT(*) AS count FROM sensor_data WHERE anomaly=1"
+    anomaly_count =  session.execute(anomaly_query).one()
+
+    # Last reading
+    last_query = "SELECT * FROM sensor_data LIMIT 1"
+    last =  session.execute(last_query).one()
+    return {
+        "total_readings": total['count'],
+        "anomaly_count": anomaly_count['count'],
+        "anomaly_percentage": (anomaly_count['count'] / total['count']) * 100 if total['count'] > 0 else 0,
+        "last_reading": {
+            "device_id": last['device_id'],
+            "timestamp": last['timestamp'].isoformat(),
+            "temperature": last['temperature'],
+            "humidity":last["humidity"],
+            "battery_level":last["battery_level"]
+        }
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app,host="0.0.0.0",port="8000")
